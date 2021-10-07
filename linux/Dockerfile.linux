@@ -1,0 +1,144 @@
+FROM ubuntu:18.04
+ENV container docker
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    apt-get install -y libgl1-mesa-glx libgl1-mesa-dri && \
+    rm -rf /var/lib/apt/lists/*
+RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
+    add-apt-repository -y ppa:oibaf/graphics-drivers
+
+
+RUN export TZ=Europe/Berlin    # must be at beginning for unknown reasons,
+RUN apt-get install tzdata     # must be at beginning for unknown reasons,
+
+
+RUN apt-get install -y xauth
+RUN apt-get install -y libgtk-3-dev pkg-config apt-utils
+RUN apt-get install -y git curl unzip tar
+RUN apt-get install -y wget git nano
+
+RUN apt install -y python3-pip python3-dev
+RUN pip3 install --upgrade pip
+RUN pip3 install numpy
+RUN pip3 install scikit-build
+RUN pip3 install opencv-python
+RUN pip3 install psutil
+
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+
+ENV TANGO_HOST=ictrlfs.ictrl.frm2:10000
+ENV QT_X11_NO_MITSHM=1
+RUN echo "deb [trusted=yes] https://forge.frm2.tum.de/repos bionic/" >>/etc/apt/sources.list.d/mlz.list
+RUN apt-get update
+
+RUN echo "tango-common tango-common/tango-host string ${TANGO_HOST}" |  debconf-set-selections
+RUN echo 'tango-db tango-db/dbconfig-install boolean false' |  debconf-set-selections
+RUN apt-get install -y python3-pytango
+RUN apt-get install -y iproute2 iputils-ping sudo
+
+RUN adduser --quiet --disabled-password -u 1000 qtuser
+
+RUN adduser qtuser sudo
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+# Install Python 3, PyQt5
+RUN apt-get update \
+    && apt-get install -y \
+      python3 \
+      python3-pyqt5
+	  
+
+ 
+
+RUN git clone https://forge.frm2.tum.de/review/frm2/tango/entangle && cd entangle && python3 setup.py install
+ADD  https://github.com/zweistein-frm2/CHARMing_binaries/raw/master/linux/x86_64/CHARMing-2.15.211006.ubuntu18.deb ./CHARMing-latest.ubuntu18.deb
+RUN apt-get install -y ./CHARMing-latest.ubuntu18.deb
+RUN echo "y" | /usr/local/bin/entangle-install-charming 
+
+
+ADD  https://github.com/zweistein-frm2/CHARMing_binaries/raw/master/linux/x86_64/charm-mesytec-emulator /usr/local/bin/charm-mesytec-emulator
+RUN chmod +x /usr/local/bin/charm-mesytec-emulator
+
+EXPOSE 54321/udp
+
+RUN mkdir -p /etc/CHARMing && chmod 777 /etc/CHARMing
+RUN mkdir -p /root/.CHARMing && chmod 777 /root/.CHARMing
+
+RUN echo '#!/bin/bash' 																		> entrypoint.sh && \
+    echo 'docker_nic=$(ls /sys/class/net | grep ^docker)'									>> entrypoint.sh && \
+	echo 'if [ -z "$docker_nic" ]; then'														>> entrypoint.sh && \
+	echo 'network=$(hostname -i)'															>> entrypoint.sh && \
+	echo 'else'																				>> entrypoint.sh && \
+	echo 'echo "running with docker --net=host"'											>> entrypoint.sh && \
+	echo 'echo docker_nic=$docker_nic'														>> entrypoint.sh && \
+	echo 'network=$(ip -4 addr show $docker_nic | grep -oP "(?<=inet\s)\d+(\.\d+){3}")'	    >> entrypoint.sh && \
+	echo 'network="${network%.*}.$((${network##*.} +1 ))"' 									>> entrypoint.sh && \
+	echo 'fi'																				>> entrypoint.sh && \
+	echo 'echo network="$network"'															>> entrypoint.sh && \
+	echo 'next_serv="${network%.*}.$((${network##*.} + 1))"' 								>> entrypoint.sh && \
+	echo 'echo next_serv=$next_serv'														>> entrypoint.sh && \
+    echo 'next_serv2="${network%.*}.$((${network##*.} + 2))"'								>> entrypoint.sh && \
+	echo 'main_nic=$(ls /sys/class/net | grep ^e)'											>> entrypoint.sh && \
+	echo 'echo main_nic="$main_nic"'														>> entrypoint.sh && \
+	echo 'sudo ip addr add $next_serv dev $main_nic'									    >> entrypoint.sh && \
+    echo 'sudo ip addr add $network dev $main_nic'										    >> entrypoint.sh && \
+	echo 'dbl="\""'																    		>> entrypoint.sh && \
+	echo 'filename=/etc/CHARMing/charmsystem.json'											>> entrypoint.sh && \
+	echo "echo '{'                   								> \$filename"  			>> entrypoint.sh && \
+	echo "echo '    \"MsmtSystem\": {'								>> \$filename"     		>> entrypoint.sh && \
+    echo "echo '        \"DataHome\": \"\/root\/\",'  				>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '        \"BinningFile\": \"\",' 					>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '        \"MesytecDevice0\": {' 						>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '           \"mcpd_ip\":' \$dbl\$next_serv\$dbl,		>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '           \"mcpd_port\": \"54321\",' 				>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '           \"mcpd_id\": \"0\",' 					>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '           \"data_host\": \"0.0.0.0\",'				>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '           \"networkcard\":' \$dbl\$network\$dbl ,	>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '           \"eventdataformat\": \"Mdll\",' 			>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '           \"datagenerator\": \"CharmSimulator\",'	>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '           \"CounterADC0\": \"\",' 					>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '           \"CounterADC1\": \"\",' 					>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '           \"CounterADC2\": \"\",' 					>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '           \"CounterADC3\": \"\",' 					>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '           \"CounterADC4\": \"\",' 					>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '           \"CounterADC5\": \"\",' 					>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '           \"CounterADC6\": \"\",' 					>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '           \"CounterADC7\": \"\",' 					>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '           \"Threshold_and_Gains0\": \"\",' 		>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '           \"Threshold_and_Gains1\": \"\",' 		>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '           \"Threshold_and_Gains2\": \"\",' 		>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '           \"Threshold_and_Gains3\": \"\",' 		>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '           \"Threshold_and_Gains4\": \"\",' 		>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '           \"Threshold_and_Gains5\": \"\",' 		>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '           \"Threshold_and_Gains6\": \"\",' 		>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '           \"Threshold_and_Gains7\": \"\"' 			>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '        },' 										>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '        \"CharmDevice0\": {' 						>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '            \"n_charm_units\": \"2\"' 				>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '      }' 											>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '    }' 												>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '}' 													>> \$filename"      	>> entrypoint.sh && \
+	echo 'filename=/root/.CHARMing/charm-mesytec-emulator.json'								>> entrypoint.sh && \
+	echo "echo '{'                   								> \$filename"  			>> entrypoint.sh && \
+	echo "echo '   \"MesytecDevice\": {' 							>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '         \"port\": \"54321\",' 						>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '         \"devid\": \"0\",' 						>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '         \"n_charm_units\": \"2\",'					>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '         \"networkcard\":' \$dbl\$next_serv\$dbl  	>> \$filename"      	>> entrypoint.sh && \
+	echo "echo '    }' 												>> \$filename"       	>> entrypoint.sh && \
+	echo "echo '}' 													>> \$filename"      	>> entrypoint.sh && \
+	echo 'set -m' 																			>> entrypoint.sh && \
+	echo '$1 &'  																			>> entrypoint.sh && \
+	echo '/usr/local/bin/charm-mesytec-emulator 20 CHARMDLL > /dev/null 2>&1 &'  			>> entrypoint.sh && \
+	echo 'echo "Commands supplied: "'		 												>> entrypoint.sh && \
+	echo 'echo "	[charm]"'		 												>> entrypoint.sh && \
+	echo 'echo "	[entangle-server ERWIN_charming.res]"'											>> entrypoint.sh && \
+	echo 'fg %1'  																			>> entrypoint.sh && \
+    chmod +x entrypoint.sh
+	
+	
+	
+
+ENTRYPOINT ["/entrypoint.sh"]
+
