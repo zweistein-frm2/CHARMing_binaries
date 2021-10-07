@@ -139,7 +139,7 @@ RUN echo '#!/bin/bash' 																		> entrypoint.sh && \
 	echo '/usr/local/bin/charm-mesytec-emulator 20 CHARMDLL > /dev/null 2>&1 &'  			>> entrypoint.sh && \
 	echo 'echo "Commands supplied: "'		 												>> entrypoint.sh && \
 	echo 'echo "	[charm]"'		 												>> entrypoint.sh && \
-	echo 'echo "	[entangle-server ERWIN_charming.res]"'											>> entrypoint.sh && \
+	echo 'echo "	[entangle-server ERWIN_detector.res]"'											>> entrypoint.sh && \
 	echo 'fg %1'  																			>> entrypoint.sh && \
     chmod +x entrypoint.sh
 	
