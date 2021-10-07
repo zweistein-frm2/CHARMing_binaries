@@ -52,6 +52,12 @@ RUN apt-get update \
  
 
 RUN git clone https://forge.frm2.tum.de/review/frm2/tango/entangle && cd entangle && python3 setup.py install
+
+RUN echo '[entangle]' 	   			> /etc/entangle/entangle.conf && \
+    echo 'resdir = "/etc/entangle"'		>> /etc/entangle/entangle.conf && \
+    echo 'logdir = "/var/log/entangle"'		>> /etc/entangle/entangle.conf && \
+    echo 'piddir = "/var/run/entangle"          >> /etc/entangle/entangle.conf
+	
 ADD  https://github.com/zweistein-frm2/CHARMing_binaries/raw/master/linux/x86_64/CHARMing-2.15.211006.ubuntu18.deb ./CHARMing-latest.ubuntu18.deb
 RUN apt-get install -y ./CHARMing-latest.ubuntu18.deb
 RUN echo "y" | /usr/local/bin/entangle-install-charming 
