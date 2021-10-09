@@ -30,7 +30,7 @@ Detailed info is found in [run time Dockerfile.ubuntu18] (https://github.com/zwe
 
 - libstdc++-10-dev must be installed
 
-[run time  Dockerfile.debian10](https://github.com/zweistein-frm2/CHARMing/blob/master/ci/rtDockerfile.debian10)
+- [run time  Dockerfile.debian10](https://github.com/zweistein-frm2/CHARMing/blob/master/ci/rtDockerfile.debian10)
 
 ### Debian11
 
