@@ -8,5 +8,5 @@ sudo sysctl -w net.core.rmem_max=26214400
 
 #inside bash: 
 #					charm
-#					entangle-server ERWIN_charming.res
+#					entangle-server ERWIN_detector.res
 
