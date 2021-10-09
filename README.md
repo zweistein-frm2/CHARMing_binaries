@@ -41,5 +41,12 @@ Detailed info is found in [run time Dockerfile.ubuntu18] (https://github.com/zwe
 for other Linux versions check the [ci directory](https://github.com/zweistein-frm2/CHARMing/tree/master/ci) for specific installation needs.
 
 
-* simulated SANS1 detector and CHARMing software within docker (linux)
-* simulated CHARM detector and CHARMing software within docker (linux)
+### simulated SANS1 detector and CHARMing software within docker (linux)
+- please download docker-build.sh from [linux](https://github.com/zweistein-frm2/CHARMing_binaries/tree/master/linux)
+  and run it.
+- then run docker-sans1.sh
+
+### simulated CHARM detector and CHARMing software within docker (linux)
+- please download docker-build.sh from [linux](https://github.com/zweistein-frm2/CHARMing_binaries/tree/master/linux)
+  and run it.
+- then run docker-charm.sh
