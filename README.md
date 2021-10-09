@@ -42,11 +42,10 @@ for other Linux versions check the [ci directory](https://github.com/zweistein-f
 
 
 ### simulated SANS1 detector and CHARMing software within docker (linux)
-- please download docker-build.sh from [linux](https://github.com/zweistein-frm2/CHARMing_binaries/tree/master/linux)
-  and run it.
+- please download docker-build.sh  Dockerfile.linux and DockerfileSans1.linux from [linux](https://github.com/zweistein-frm2/CHARMing_binaries/tree/master/linux)
+  and run  docker-build.sh.
 - then run docker-sans1.sh
 
 ### simulated CHARM detector and CHARMing software within docker (linux)
-- please download docker-build.sh from [linux](https://github.com/zweistein-frm2/CHARMing_binaries/tree/master/linux)
-  and run it.
+- please download docker-build.sh  Dockerfile.linux and DockerfileSans1.linux from [linux](https://github.com/zweistein-frm2/CHARMing_binaries/tree/master/linux)
 - then run docker-charm.sh
